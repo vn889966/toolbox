@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>toolbox · 自用小工具</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#181b22; --line:#262a33; --fg:#e6e8ec;
+    --dim:#8b919c; --acc:#5b8cff; --ok:#3ecf8e; --bad:#ff5f56; --warn:#f0a020;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+  header{padding:28px 20px 20px;text-align:center;border-bottom:1px solid var(--line)}
+  header h1{margin:0;font-size:22px;letter-spacing:.5px}
+  header p{margin:6px 0 0;color:var(--dim);font-size:13px}
+  main{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:16px 18px;margin-bottom:16px}
+  .card h2{margin:0 0 12px;font-size:15px;color:var(--acc);
+    display:flex;align-items:center;gap:8px}
+  .card h2::before{content:"";width:3px;height:14px;background:var(--acc);border-radius:2px}
+  label{display:block;font-size:12px;color:var(--dim);margin:8px 0 4px}
+  input,textarea,select,button{width:100%;padding:8px 10px;background:#10131a;
+    color:var(--fg);border:1px solid var(--line);border-radius:6px;
+    font:13px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--acc)}
+  textarea{min-height:88px;resize:vertical}
+  button{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600;
+    cursor:pointer;font-family:inherit;margin-top:8px}
+  button:hover{filter:brightness(1.1)}
+  button.ghost{background:transparent;color:var(--dim);border-color:var(--line);font-weight:400}
+  button.ghost:hover{color:var(--fg);border-color:var(--acc)}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .row>*{flex:1;min-width:130px}
+  pre{background:#10131a;border:1px solid var(--line);border-radius:6px;
+    padding:10px 12px;margin:10px 0 0;font-size:13px;white-space:pre-wrap;
+    word-break:break-all;max-height:300px;overflow:auto}
+  .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)} .dim{color:var(--dim)}
+  .mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:500;font-size:12px}
+  .pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600}
+  .pill.up{background:rgba(62,207,142,.15);color:var(--ok)}
+  .pill.down{background:rgba(255,95,86,.15);color:var(--bad)}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .tabs button{width:auto;margin:0;padding:6px 12px;font-size:13px;font-weight:500;
+    background:var(--card);border:1px solid var(--line);color:var(--dim)}
+  .tabs button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+  .panel{display:none} .panel.on{display:block}
+  footer{text-align:center;color:var(--dim);font-size:12px;padding:20px}
+  a{color:var(--acc)}
+</style>
+</head>
+<body>
+<header>
+  <h1>toolbox</h1>
+  <p>自用小工具 · 全部本地计算，不联网（IP 查询与探活除外）</p>
+</header>
+<main>
+
+<div class="tabs" id="tabs">
+  <button class="on" data-t="p-ip">IP 查询</button>
+  <button data-t="p-cert">证书查询</button>
+  <button data-t="p-ping">站点探活</button>
+  <button data-t="p-enc">编码转换</button>
+  <button data-t="p-ts">时间戳</button>
+  <button data-t="p-re">正则测试</button>
+  <button data-t="p-json">JSON 格式化</button>
+</div>
+
+<!-- ============ IP 查询 ============ -->
+<section class="panel on" id="p-ip">
+  <div class="card">
+    <h2>我的公网 IP</h2>
+    <button id="ip-btn">查询</button>
+    <pre id="ip-out">点击「查询」获取你的公网 IP 与归属地。
+
+注：GitHub Pages 是 HTTPS，只能用支持 CORS 的接口。
+若被浏览器拦截，结果会显示错误。</pre>
+  </div>
+</section>
+
+<!-- ============ 证书查询 ============ -->
+<section class="panel" id="p-cert">
+  <div class="card">
+    <h2>证书到期查询</h2>
+    <div class="row">
+      <div><label>域名</label><input id="cert-host" value="hy2hk.503300013.xyz"></div>
+      <div><label>端口</label><input id="cert-port" value="9443" inputmode="numeric"></div>
+    </div>
+    <button id="cert-btn">查询</button>
+    <pre id="cert-out">查询域名的 TLS 证书信息。
+
+⚠️ 浏览器限制：纯前端无法直接读证书字段。
+这里通过 crt.sh 公开证书透明度日志查询，
+只能查到证书链概况，不含精确握手细节。
+要精确到期日，用：
+  echo | openssl s_client -connect 域名:端口 -servername 域名 2>/dev/null | openssl x509 -noout -dates</pre>
+  </div>
+</section>
+
+<!-- ============ 站点探活 ============ -->
+<section class="panel" id="p-ping">
+  <div class="card">
+    <h2>站点探活</h2>
+    <label>每行一个 URL</label>
+    <textarea id="ping-urls">https://hy2hk.503300013.xyz:9443/
+https://hy2us.503300013.xyz:9443/</textarea>
+    <button id="ping-btn">开始探测</button>
+    <div id="ping-out"></div>
+    <p class="dim" style="font-size:12px;margin-top:10px">
+      浏览器只能读到「通/不通」，读不到状态码细节（跨域限制）。<br>
+      要 HTTP 状态码，用：<span class="mono">curl -sk -o /dev/null -w '%{http_code} %{size_download}' URL</span>
+    </p>
+  </div>
+</section>
+
+<!-- ============ 编码转换 ============ -->
+<section class="panel" id="p-enc">
+  <div class="card">
+    <h2>编码转换</h2>
+    <label>输入</label>
+    <textarea id="enc-in" placeholder="在此输入或粘贴…"></textarea>
+    <div class="row">
+      <button id="enc-b64e">→ Base64 编码</button>
+      <button id="enc-b64d">← Base64 解码</button>
+    </div>
+    <div class="row">
+      <button id="enc-urle">→ URL 编码</button>
+      <button id="enc-urld">← URL 解码</button>
+    </div>
+    <div class="row">
+      <button id="enc-ue">→ \uXXXX 转义</button>
+      <button id="enc-ud">← \uXXXX 还原</button>
+    </div>
+    <div class="row">
+      <button id="enc-hex">→ Hex</button>
+      <button id="enc-unhex">← Hex 还原</button>
+      <button class="ghost" id="enc-copy">复制结果</button>
+    </div>
+    <label>输出</label>
+    <pre id="enc-out"></pre>
+  </div>
+</section>
+
+<!-- ============ 时间戳 ============ -->
+<section class="panel" id="p-ts">
+  <div class="card">
+    <h2>时间戳转换</h2>
+    <div class="row">
+      <div><label>Unix 时间戳（秒）</label><input id="ts-in" inputmode="numeric" placeholder="1760000000"></div>
+      <div><label>→ 可读时间</label><button id="ts-go">转换</button></div>
+    </div>
+    <pre id="ts-out"></pre>
+    <div class="row" style="margin-top:12px">
+      <div><label>日期时间（本地）</label><input id="ts-dt" type="datetime-local" step="1"></div>
+      <div><label>→ 时间戳</label><button id="ts-go2">转换</button></div>
+    </div>
+    <pre id="ts-out2"></pre>
+    <button class="ghost" id="ts-now">取当前时间</button>
+  </div>
+</section>
+
+<!-- ============ 正则测试 ============ -->
+<section class="panel" id="p-re">
+  <div class="card">
+    <h2>正则测试</h2>
+    <label>正则表达式</label>
+    <input id="re-pat" placeholder="\d{4}-\d{2}-\d{2}">
+    <div class="row">
+      <div><label> flags</label><input id="re-flag" value="g" placeholder="gimsuy"></div>
+      <div><label>结果</label><input id="re-count" readonly placeholder="—"></div>
+    </div>
+    <label>测试文本</label>
+    <textarea id="re-txt" placeholder="每行一条，或粘贴大段文本…">2026-10-14 ok
+2026-1-5 bad
+not a date
+2026-12-18</textarea>
+    <div id="re-hl" style="margin-top:10px;font-size:13px;line-height:1.9;white-space:pre-wrap;word-break:break-all"></div>
+  </div>
+</section>
+
+<!-- ============ JSON 格式化 ============ -->
+<section class="panel" id="p-json">
+  <div class="card">
+    <h2>JSON 格式化</h2>
+    <label>输入</label>
+    <textarea id="json-in" placeholder='{"a":1,"b":[1,2,3]}'></textarea>
+    <div class="row">
+      <button id="json-fmt">格式化</button>
+      <button id="json-min">压缩</button>
+      <button class="ghost" id="json-esc">转义成字符串</button>
+      <button class="ghost" id="json-copy">复制结果</button>
+    </div>
+    <label>输出</label>
+    <pre id="json-out"></pre>
+  </div>
+</section>
+
+</main>
+<footer>toolbox · 静态页 · <a href="https://github.com/vn889966/toolbox">源码</a></footer>
+
+<script>
+// ---------- tabs ----------
+const tabs = document.getElementById('tabs');
+tabs.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  tabs.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  document.getElementById(b.dataset.t).classList.add('on');
+});
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ---------- IP ----------
+$('ip-btn').onclick = async () => {
+  const out = $('ip-out');
+  out.textContent = '查询中…';
+  const apis = [
+    ['https://api.ipify.org?format=json', d => `${d.ip}`],
+    ['https://api64.ipify.org?format=json', d => `${d.ip}`],
+    ['https://ipapi.co/json/', d => `${d.ip}  ${d.city||''} ${d.region||''} ${d.country_name||''}  ASN:${d.asn||''}  ${d.org||''}`],
+  ];
+  for (const [url, fmt] of apis) {
+    try {
+      const r = await fetch(url);
+      const d = await r.json();
+      out.textContent = fmt(d).trim() + '\n（来源: ' + new URL(url).host + '）';
+      return;
+    } catch (e) { /* try next */ }
+  }
+  out.textContent = '所有接口都失败（可能被 CORS 或网络拦截）。\n替代方案: curl -s https://api.ipify.org';
+};
+
+// ---------- cert ----------
+$('cert-btn').onclick = async () => {
+  const host = $('cert-host').value.trim();
+  const out = $('cert-out');
+  if (!host) { out.textContent = '请输入域名'; return; }
+  out.textContent = '查询 crt.sh …';
+  try {
+    const r = await fetch(`https://crt.sh/?q=${encodeURIComponent(host)}&output=json`);
+    const d = await r.json();
+    if (!Array.isArray(d) || !d.length) { out.textContent = '证书透明日志里查不到该域名'; return; }
+    // 取最新的几条
+    const seen = new Set(); const rows = [];
+    d.sort((a,b) => (b.not_before||'').localeCompare(a.not_before||''));
+    for (const c of d) {
+      const k = c.id.value;
+      if (seen.has(k)) continue; seen.add(k);
+      rows.push(c); if (rows.length >= 8) break;
+    }
+    out.innerHTML = rows.map(c => {
+      const nb = (c.not_before||'').replace('T',' ').slice(0,19);
+      const na = (c.not_after ||'').replace('T',' ').slice(0,19);
+      const left = na ? Math.floor((new Date(na) - new Date())/86400000) : '?';
+      const cls = (typeof left === 'number' && left < 14) ? 'bad' : (typeof left === 'number' && left < 30 ? 'warn' : 'ok');
+      return `签发 CA : ${esc(c.issuer_name)}
+通用名   : ${esc(c.common_name)}
+生效     : ${esc(nb)}
+到期     : ${esc(na)}   <span class="${cls}">剩余 ${left} 天</span>
+crt.sh   : https://crt.sh/?id=${c.id.value}
+────────────────────────`;
+    }).join('\n');
+  } catch (e) {
+    out.textContent = '查询失败: ' + e.message + '\ncrt.sh 偶尔会很慢或不稳定，可刷新重试。';
+  }
+};
+
+// ---------- ping ----------
+$('ping-btn').onclick = async () => {
+  const urls = $('ping-urls').value.split('\n').map(s => s.trim()).filter(Boolean);
+  const out = $('ping-out');
+  out.innerHTML = '探测中…';
+  const rows = [];
+  for (const u of urls) {
+    const t0 = performance.now();
+    try {
+      await fetch(u, {mode:'no-cors', cache:'no-store'});
+      const ms = Math.round(performance.now() - t0);
+      rows.push({u, ok:true, ms});
+    } catch (e) {
+      const ms = Math.round(performance.now() - t0);
+      rows.push({u, ok:false, ms, err: String(e.message||e)});
+    }
+  }
+  out.innerHTML = '<table><tr><th>URL</th><th>结果</th><th>耗时</th></tr>' +
+    rows.map(r => `<tr><td class="mono">${esc(r.u)}</td>
+      <td>${r.ok ? '<span class="pill up">可达</span>' : '<span class="pill down">不可达</span>'}</td>
+      <td class="dim">${r.ms} ms</td></tr>`).join('') + '</table>';
+};
+
+// ---------- encode ----------
+function encOut(s, bad) {
+  $('enc-out').textContent = bad ? ('错误: ' + s) : s;
+}
+$('enc-b64e').onclick = () => { try { encOut(btoa(unescape(encodeURIComponent($('enc-in').value)))); } catch(e){ encOut(e.message,1);} };
+$('enc-b64d').onclick = () => { try { encOut(decodeURIComponent(escape(atob($('enc-in').value.trim())))); } catch(e){ encOut(e.message,1);} };
+$('enc-urle').onclick = () => encOut(encodeURIComponent($('enc-in').value));
+$('enc-urld').onclick = () => { try { encOut(decodeURIComponent($('enc-in').value.trim())); } catch(e){ encOut(e.message,1);} };
+$('enc-ue').onclick  = () => encOut($('enc-in').value.replace(/[^\x00-\x7F]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4,'0')));
+$('enc-ud').onclick  = () => encOut($('enc-in').value.replace(/\\u([0-9a-fA-F]{4})/g, (_,h) => String.fromCharCode(parseInt(h,16))));
+$('enc-hex').onclick  = () => encOut([...new TextEncoder().encode($('enc-in').value)].map(b => b.toString(16).padStart(2,'0')).join(' '));
+$('enc-unhex').onclick = () => {
+  try {
+    const hex = $('enc-in').value.replace(/0x/gi,'').replace(/[^0-9a-fA-F]/g,'');
+    const bytes = hex.match(/.{2}/g)?.map(h => parseInt(h,16)) || [];
+    encOut(new TextDecoder().decode(new Uint8Array(bytes)));
+  } catch(e){ encOut(e.message,1);}
+};
+$('enc-copy').onclick = () => navigator.clipboard.writeText($('enc-out').textContent);
+
+// ---------- timestamp ----------
+function pad(n){ return String(n).padStart(2,'0'); }
+function fmt(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }
+$('ts-go').onclick = () => {
+  const v = $('ts-in').value.trim();
+  if (!/^\d{9,13}$/.test(v)) { $('ts-out').textContent = '请输入 10 位（秒）或 13 位（毫秒）时间戳'; return; }
+  const ms = v.length > 10 ? +v : +v * 1000;
+  const d = new Date(ms);
+  $('ts-out').textContent =
+    `本地时间 : ${fmt(d)}\nISO 8601 : ${d.toISOString()}\nUTC      : ${d.toUTCString()}\n星期     : ${'日一二三四五六'[d.getDay()]}`;
+};
+$('ts-go2').onclick = () => {
+  const v = $('ts-dt').value;
+  if (!v) { $('ts-out2').textContent = '请选择日期时间'; return; }
+  const ms = new Date(v).getTime();
+  $('ts-out2').textContent = `秒: ${Math.floor(ms/1000)}\n毫秒: ${ms}\nISO: ${new Date(ms).toISOString()}`;
+};
+$('ts-now').onclick = () => {
+  const d = new Date();
+  $('ts-in').value = Math.floor(d.getTime()/1000);
+  $('ts-dt').value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  $('ts-go').onclick(); $('ts-go2').onclick();
+};
+
+// ---------- regex ----------
+function reRun() {
+  const pat = $('re-pat').value, flag = $('re-flag').value, txt = $('re-txt').value;
+  const hl = $('re-hl'), cnt = $('re-count');
+  if (!pat) { hl.textContent = ''; cnt.value = ''; return; }
+  let re;
+  try { re = new RegExp(pat, flag.includes('g') ? flag : flag + 'g'); }
+  catch (e) { hl.innerHTML = `<span class="bad">正则错误: ${esc(e.message)}</span>`; cnt.value = '错误'; return; }
+  const m = txt.match(re);
+  cnt.value = m ? `${m.length} 处匹配` : '0 处匹配';
+  // 高亮
+  let html = '', last = 0;
+  txt.replace(re, (match, ...args) => {
+    const idx = args[args.length - 2];
+    html += esc(txt.slice(last, idx)) + '<mark style="background:rgba(91,140,255,.35);color:#fff;border-radius:2px">' + esc(match) + '</mark>';
+    last = idx + match.length;
+    return match;
+  });
+  html += esc(txt.slice(last));
+  hl.innerHTML = html;
+}
+['re-pat','re-flag','re-txt'].forEach(id => $(id).addEventListener('input', reRun));
+reRun();
+
+// ---------- json ----------
+function jsonOut(s, bad) { $('json-out').textContent = bad ? ('错误: ' + s) : s; }
+$('json-fmt').onclick = () => { try { jsonOut(JSON.stringify(JSON.parse($('json-in').value), null, 2)); } catch(e){ jsonOut(e.message,1);} };
+$('json-min').onclick = () => { try { jsonOut(JSON.stringify(JSON.parse($('json-in').value))); } catch(e){ jsonOut(e.message,1);} };
+$('json-esc').onclick = () => { try { jsonOut(JSON.stringify(JSON.stringify(JSON.parse($('json-in').value), null, 2))); } catch(e){ jsonOut(e.message,1);} };
+$('json-copy').onclick = () => navigator.clipboard.writeText($('json-out').textContent);
+</script>
+</body>
+</html>
